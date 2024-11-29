@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cross site scripting</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+</head>
+
+<body class="m-5">
+    <h1>localStorage</h1>
+    <div class="card">
+        <div class="card-title h1">Chat - User 2</div>
+        <div class="card-body" style="height: 300px; overflow-y: scroll;">
+            <ul id="chat" class="list-group">
+                
+            </ul>
+        </div>
+    </div>
+    <label for="message" class="form-label">Message</label>
+    <input type="text" class="form-control" id="message">
+    <div id="something" class="mt-3">
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
+    crossorigin="anonymous"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.5/purify.min.js"
+    integrity="sha512-KqUc2WMPF/gxte9xVjVE4TIt1LMUTidO3BrcItFg0Ro24I7pGNzgcXdnWdezNY+8T0/JEmdC79MuwYn+8UdOqw=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script> -->
+    <script src="js/purify.min.js"></script>
+    <script>
+        document.cookie = "sid=2222222222222222222";
+        const chat = document.querySelector("#chat");
+        const message = document.querySelector("#message");
+        const button = document.querySelector("#send");
+        const something = document.querySelector("#something");
+        
+        message.addEventListener('keydown', (event) => {
+            const code = event.which ? event.which : event.keyCode;
+            if (code === 13) {
+                const cleanedMessage = message.value.trim();
+                if (cleanedMessage) sendMessage(cleanedMessage);
+            }
+        })
+        
+        addEventListener('message', (event) => {
+            const messageData = event.data;
+            if (messageData && messageData.user && messageData.message) {
+                getMessage(messageData);
+            } else {
+                console.warn('Messaggio non valido ricevuto:', event.data);
+            }
+        });
+        
+        
+        const params = new URLSearchParams(location.search);
+        if (params.has("something")) {
+            localStorage.setItem("something", params.get("something"));
+        }else{
+            localStorage.setItem("something", "");
+
+        }
+        
+        const somethingStored = localStorage.getItem("something");
+        if (somethingStored) {
+            something.innerHTML = `<span class="fw-bold display-5">Something is </span><span class="display-5">${sanitize(somethingStored)}</span>`;
+        } else {
+            something.innerHTML = "";
+        }
+        
+        function sendMessage(cleanedMessage) {
+            const listItem = document.createElement('li');
+            listItem.classList.add('list-group-item');
+            listItem.innerHTML = `<span class="fw-bold">User 2: </span><span>${sanitize(cleanedMessage)}</span>`;
+            chat.appendChild(listItem);
+            message.value = "";
+            window.opener.postMessage({ user: 'User 2', message: cleanedMessage }, '*');
+        }
+        function getMessage(messageData) {
+            const listItem = document.createElement('li');
+            listItem.classList.add('list-group-item');
+            listItem.innerHTML = `<span class="fw-bold">${messageData.user}: </span><span>${sanitize(messageData.message)}</span>`;
+            chat.appendChild(listItem);
+            message.value = "";
+        }
+        
+        function sanitize(message) {
+            
+            // UNSECURE
+            // no validation
+            return message;
+            
+            // SECURE
+            // Manual validation
+            // return message.replaceAll(/<(\w+?) /g, (match, name) => {
+            //     switch (name) {
+            //         case 'script':
+            //         case 'a':
+            //         case 'img':
+            //         case 'frame':
+            //         case 'iframe':
+            //             return '';
+            //         default: return match;
+            //     }
+            // })
+            
+            // SECURE
+            // Pacchetto Dompurify
+            //return DOMPurify.sanitize(message);
+            
+        }
+    </script>
+</body>
+
+</html>
